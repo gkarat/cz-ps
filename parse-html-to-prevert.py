@@ -31,6 +31,8 @@ def print_speech_paragraph(fout, p):
 
 
 def print_paragraph(fout, p):
+	if p.text in ["", " ", " " "\n"]:
+		return
 	space = " " * 10
 	fout.write(space)
 	fout.write("<p>\n")
@@ -46,15 +48,23 @@ if __name__ == '__main__':
 		content = file.read()
 
 	### odstraneni nepotrebnych radku
-	content = content.split("\n", 16)[16].rsplit("\n", 4)[0]
+	###content = content.split("\n", 16)[16].rsplit("\n", 4)[0]
+	
+	new_peson = False
 
 	fout = open(filename.split('.')[0] + ".prevert", "w")
 	soup = BeautifulSoup(content, "lxml")
 	for paragraph in soup.find_all('p'):
 		### if paragraph belongs to the another person
 		if paragraph.find('a'):
+			if new_peson:
+				fout.write("</speech>\n")
+			new_peson = True
 			print_speech_paragraph(fout, paragraph)
+		elif not new_peson:
+			continue
 		### write the content in .prevert format
 		print_paragraph(fout, paragraph)
+	fout.write("</speech>\n")
 
 	fout.close()
