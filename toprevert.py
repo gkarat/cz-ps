@@ -21,7 +21,7 @@ def print_speech_paragraph(fout, p):
 	"""
 	fout.write("<speech ID=\"")
 	
-	id_ = re.search("(?<=id=).*(?=\")", p)
+	id_ = re.search("(?<=id=).*(?=\">)", p)
 	href_ = None
 	if not id_:													# person might doesn't have an id
 		href_ = re.search("(?<=href=\").*(?=\">)", p)
@@ -43,7 +43,7 @@ def print_speech_paragraph(fout, p):
 		url_ = href_.group(0)		# when a person has its own website
 	else:
 		if id_:			# if he has own page on www.psp.cz
-			url_ = "https://www.psp.cz/" + re.search("(?<=href=\").*(?=\")", p).group(0)
+			url_ = "https://www.psp.cz/" + re.search("(?<=href=\"/).*(?=\">)", p).group(0)
 		else:			# if has no information about website TODO?
 			url_ = ""
 
