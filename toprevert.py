@@ -1,66 +1,85 @@
 #!/usr/bin/python3
+# coding=windows-1250
 
 """
-
 Parses .html file to .prevert format
 
-
 """
 
-"""
-EXAMPLE
-
-<p align="justify"><a href="/sqw/detail.sqw?id=5462">Pøedseda PSP Jan Hamáèek</a>: Dìkuji. Vážený pane místopøedsedo, 
-dámy a pánové, vážená vládo, já bych nevystupoval, kdyby moje jméno nepadlo z&nbsp;úst jednoho z&nbsp;øeèníkù. 
-A když už tedy to slovo mám, tak to vezmu trošku zeširoka. </p>
-
-<speech ID="401" FirstName="Miroslava" SecondaryRole="poslanec" StenographerTitle="Řeč předsedající Miroslavy Němcové" Surname="Němcová" 
-TitleAfter="" TitleBefore="" Url="http://www.psp.cz/sqw/detail.sqw?id=401" Function="Předsedající" Continue="False">
-"""
-
-import sys
 import re
-from bs4 import BeautifulSoup
+from lxml import etree
 
+
+"""
+<speech ID="http://www.vlada.cz/cz/vlada/premier/" FirstName="vlády" 
+Surname="ČR" Url="<_sre.SRE_Match object; span=(9, 46), match='http://www.vlada.cz/cz/vlada/premier/'>" Function="Předseda">
+"""
 
 def print_speech_paragraph(fout, p):
-	### write ID
+	"""
+	Writes ID of every new speech
+	"""
 	fout.write("<speech ID=\"")
-	fout.write(p.a['href'].split("id=")[-1])
 	
-	### info_name = [ROLE, FIRSTNAME, LASTNAME]
-	info_name = p.find('a').text.rsplit(' ', 2)
+	id_ = re.search("(?<=id=).*(?=\")", p)
+	href_ = None
+	if not id_:													# person might doesn't have an id
+		href_ = re.search("(?<=href=\").*(?=\">)", p)
+		if href_:																# but it can have an own web-site (e.g. premier)
+			fout.write(re.search("(?<=href=\").*(?=\">)", p).group(0))
+		else:												# otherwise leave ID field empty
+			fout.write("")
+	else:
+		fout.write(id_.group(0))
+
+	if p[0:2] == "<b":
+		info_name = re.search("(?<=u>).*(?=</u>)", p).group(0).rsplit(" ", 2)
+	else:
+		info_name = re.search("(?<=>).*(?=</a>)", p).group(0).rsplit(" ", 2)				# info_name consists of [ROLE, FIRSTNAME, LASTNAME]
+
 	fout.write("\" FirstName=\"%s\" Surname=\"%s\" " % (info_name[1], info_name[2]))
-	fout.write("Url=\"%s\" Function=\"%s\">" % ("https://www.psp.cz/" + p.a['href'], info_name[0]))
+
+	if href_:
+		url_ = href_.group(0)		# when a person has its own website
+	else:
+		if id_:			# if he has own page on www.psp.cz
+			url_ = "https://www.psp.cz/" + re.search("(?<=href=\").*(?=\")", p).group(0)
+		else:			# if has no information about website TODO?
+			url_ = ""
+
+	fout.write("Url=\"%s\" Function=\"%s\">" % (url_, info_name[0]))
 	fout.write("\n")
 
 
 def print_paragraph(fout, p):
-	if p.text in ["", " ", " " "\n"]:
-		return
-	space = " " * 10
-	fout.write(space)
+	"""
+	Writes every single paragraph's text
+	"""
+	p = re.sub("&nbsp;", " ", p)		# replacing &nbsp; characters with whitespace
 	fout.write("<p>\n")
-	fout.write(space + "  " + p.text + "\n")
-	fout.write(space)
+	if p[0] == '<':
+		fout.write(p.split(">: ")[-1] + "\n")
+	else:
+		fout.write(p + "\n")
 	fout.write("</p>\n")
 
 
-def to_prevert(filename, target):
-	with open(filename, encoding = "ISO-8859-1") as file:
-		content = file.read()
+def to_prevert(filepath, fout):
+	with open(filepath, encoding = "windows-1250") as protocol_file:
+		content = protocol_file.read()
 
 	new_peson = False
-	fout = open(target, "w")
-	soup = BeautifulSoup(content, "lxml")
-	for paragraph in soup.find_all('p'):
-		if paragraph.find('a'):							# if paragraph belongs to the another person
+	
+	for paragraph in re.findall('(?<=justify\">).*(?=</p>)', content):
+		
+		if paragraph == "&nbsp;":		# skip paragraphs without any meaningful text
+			continue
+		if paragraph[0] == '<':							# if paragraph belongs to the another person
 			if new_peson:
 				fout.write("</speech>\n")
 			new_peson = True
 			print_speech_paragraph(fout, paragraph)
 		elif not new_peson:
 			continue
-		print_paragraph(fout, paragraph)				# write the paragraph in .prevert format
+		print_paragraph(fout, paragraph)
 	fout.write("</speech>\n")
-	fout.close()
