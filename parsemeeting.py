@@ -18,23 +18,24 @@ import os
 import glob
 import re
 import sys
+from collections import OrderedDict
 
 from toprevert import to_prevert
 
 
 months_endings = {
-	"dna": 	1,
-	"ra": 	2,
-	"zna": 	3,
-	"bna": 	4,
-	"tna": 	5,
-	"vna": 	6,
-	"ence": 7,
-	"pna": 	8,
-	"í": 	9,
-	"jna": 	10,
-	"du": 	11,
-	"ince": 12
+	"dna": 	"01",
+	"ra": 	"02",
+	"zna": 	"03",
+	"bna": 	"04",
+	"tna": 	"05",
+	"vna": 	"06",
+	"ence": "07",
+	"pna": 	"08",
+	"í": 	"09",
+	"jna": 	"10",
+	"du": 	"11",
+	"ince": "12"
 }
 
 
@@ -56,8 +57,12 @@ def print_docs_tag(fout, title):
 	"""
 	meeting_number = re.search("[0-9].*(?=. sch)", title).group(0)
 	meeting_day = re.search("(?<=ze, ).[0-9]*", title).group(0)
+	
+	if len(meeting_day) == 1:
+		meeting_day = '0' + meeting_day
+
 	month = re.search("(?<=, [0-9].{3}).*(?=.[0-9]{4})", title).group(0)
-	meeting_month = str(define_month(month))
+	meeting_month = define_month(month)
 
 	if meeting_month == 'None':
 		sys.exit("^^^ Invalid month format!")
@@ -81,6 +86,7 @@ def parse_meeting(meeting_name, fout):
 		print_docs_tag(fout, title)
 
 		protocols = re.findall("(?<=<a href=\")s.*(?=#)", day_content)
+		protocols = list(OrderedDict.fromkeys(protocols))
 		for protocol_name in protocols:
 			to_prevert('unpacked/%s/%s' % (meeting_name, protocol_name), fout)		# go through single protocol and write down to the summary file
 

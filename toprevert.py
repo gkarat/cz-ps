@@ -15,6 +15,18 @@ from lxml import etree
 Surname="ČR" Url="<_sre.SRE_Match object; span=(9, 46), match='http://www.vlada.cz/cz/vlada/premier/'>" Function="Předseda">
 """
 
+def personInfo(p):							# personInfo return value consists of [ROLE, FIRSTNAME, LASTNAME]
+	if p[0:2] == "<b":
+		info_block = re.search("(?<=u>).*(?=</u>)", p).group(0)
+	else:
+		info_block = re.search("(?<=>).*(?=</a>)", p).group(0)
+	if info_block:
+		if info_block.startswith("Poslan"):
+			return info_block.split(" ", 2)
+		else:
+			return info_block.rsplit(" ", 2)
+
+
 def print_speech_paragraph(fout, p):
 	"""
 	Writes ID of every new speech
@@ -26,18 +38,22 @@ def print_speech_paragraph(fout, p):
 	if not id_:													# person might doesn't have an id
 		href_ = re.search("(?<=href=\").*(?=\">)", p)
 		if href_:																# but it can have an own web-site (e.g. premier)
-			fout.write(re.search("(?<=href=\").*(?=\">)", p).group(0))
+			if href_.group(0).endswith("/"):
+				href_last = href_.group(0).split('/')[-2]
+			else:
+				href_last = href_.group(0).split('/')[-1]
+			if href_last == "vlada":
+				fout.write("")
+			else:
+				fout.write(href_last)
 		else:												# otherwise leave ID field empty
 			fout.write("")
 	else:
 		fout.write(id_.group(0))
 
-	if p[0:2] == "<b":
-		info_name = re.search("(?<=u>).*(?=</u>)", p).group(0).rsplit(" ", 2)
-	else:
-		info_name = re.search("(?<=>).*(?=</a>)", p).group(0).rsplit(" ", 2)				# info_name consists of [ROLE, FIRSTNAME, LASTNAME]
+	person_info = personInfo(p)
 
-	fout.write("\" FirstName=\"%s\" Surname=\"%s\" " % (info_name[1], info_name[2]))
+	fout.write("\" FirstName=\"%s\" Surname=\"%s\" " % (person_info[1], person_info[2]))
 
 	if href_:
 		url_ = href_.group(0)		# when a person has its own website
@@ -47,7 +63,7 @@ def print_speech_paragraph(fout, p):
 		else:			# if has no information about website TODO?
 			url_ = ""
 
-	fout.write("Url=\"%s\" Function=\"%s\">" % (url_, info_name[0]))
+	fout.write("Url=\"%s\" Function=\"%s\">" % (url_, person_info[0]))
 	fout.write("\n")
 
 

@@ -1,26 +1,32 @@
 dir_guard=@mkdir -p $(@D)			# prevents non-existing directories
 
-INDEXURL=https://www.psp.cz/eknih/2013ps/stenprot/zip/index.htm
+INDEX_URL=https://www.psp.cz/eknih/2013ps/stenprot/zip/index.htm
+ZIP_URL=https://www.psp.cz/eknih/2013ps/stenprot/zip/
 
 INDEX=001			# used for a single meeting parsing, always 3-digit number
 
-ALL_MEETINGS=$(shell curl $(INDEXURL) 2>/dev/null|grep -a schuz.zip |cut -f 2 -d '"')		# list of all meetings
+ALL_MEETINGS=$(shell curl $(INDEX_URL) 2>/dev/null|grep -a schuz.zip |cut -f 2 -d '"')		# list of all meetings
+DOWNLOADED_MEETINGS=$(shell ls zips 2>/dev/null || echo "")
 
-.PHONY: allzips toprevall toprev clean
+.PHONY: allzips prev prevall prevavail clean
 
 all:
-	@echo "Usage: make getzips; make toprevall; make toprev <INDEX=XXX>; make clean\n"
-	@echo "- make getzips: 		download all available zips from INDEXURL"
-	@echo "- make toprevall: 		format all meetings into prevert format"
-	@echo "- make toprev <INDEX=XXX>: 	format a certain meeting with 3-digit index (default = 001)"
-	@echo "- make clean: 			remove directories unpacked/ and zips/"
-	@echo "\n! bs4 MODULE HAS TO BE INSTALLED ON YOUR MACHINE FOR CORRECT SCRIPT WORK !\n"
+	@echo "Usage: make getzips; make prevall; make prevavail; make prev [INDEX=<ind>]; make clean\n"
+	@echo "\e[32m $$ make getzips: 		\e[0m download all zips from www.psp.cz"
+	@echo "\e[32m $$ make prevall: 		\e[0m download zips (if needed) and make vert of all meetings from www.psp.cz"
+	@echo "\e[32m $$ make prevavail:		\e[0m make vert of all currently downloaded (available) meetings"
+	@echo "\e[32m $$ make prev [INDEX=<ind>]: 	\e[0m download zip (if needed) and make vert of a certain meetings (default INDEX = 001), use only 3-digit numbers"
+	@echo "\e[32m $$ make clean: 			\e[0m remove directories unpacked/ and zips/"
+	@echo "\e[32m $$ make cleanall:		\e[0m remove unpacked/, zips/ and preverts/ folders"
 
 getzips: $(ALL_MEETINGS:%=zips/%)
 
-toprevall: $(ALL_MEETINGS:%.zip=preverts/%.prevert)
+prevall: $(ALL_MEETINGS:%.zip=preverts/%.prevert)
 
-toprev: $(INDEX:%=preverts/%schuz.prevert)
+prevavail: $(DOWNLOADED_MEETINGS:%.zip=preverts/%.prevert)
+
+prev: $(INDEX:%=preverts/%schuz.prevert)
+
 
 preverts/%.prevert: unpacked/%
 	$(dir_guard)
@@ -36,8 +42,10 @@ unpacked/%: zips/%.zip
 zips/%.zip:
 	$(dir_guard)
 	@echo 'downloading $*.zip...'
-	@wget -q -O $@ https://www.psp.cz/eknih/2013ps/stenprot/zip/$*.zip 2>/dev/null || (echo '$* is not accessible!'; rm $@)
+	@wget -q -O $@ $(ZIP_URL)$*.zip 2>/dev/null || (echo '$* is not accessible!'; rm $@)
 
 clean:
-	@rm -rf unpacked
-	@rm -rf zips
+	@rm -rf unpacked zips
+
+cleanall:
+	@rm -rf unpacked zips preverts
