@@ -2,18 +2,12 @@
 # coding=windows-1250
 
 """
-Parses .html file to .prevert format
+Parses .htm file to .prevert format
 
 """
 
 import re
-from lxml import etree
 
-
-"""
-<speech ID="http://www.vlada.cz/cz/vlada/premier/" FirstName="vlády" 
-Surname="ČR" Url="<_sre.SRE_Match object; span=(9, 46), match='http://www.vlada.cz/cz/vlada/premier/'>" Function="Předseda">
-"""
 
 def personInfo(p):							# personInfo return value consists of [ROLE, FIRSTNAME, LASTNAME]
 	if p[0:2] == "<b":
@@ -60,7 +54,7 @@ def print_speech_paragraph(fout, p):
 	else:
 		if id_:			# if he has own page on www.psp.cz
 			url_ = "https://www.psp.cz/" + re.search("(?<=href=\"/).*(?=\">)", p).group(0)
-		else:			# if has no information about website TODO?
+		else:			# if has no information about website
 			url_ = ""
 
 	fout.write("Url=\"%s\" Function=\"%s\">" % (url_, person_info[0]))

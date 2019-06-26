@@ -13,7 +13,6 @@ another file on every single sXXX.htm like file
 
 #import cProfile, pstats, io 			# for speed control
 
-import lxml.html
 import os
 import glob
 import re
@@ -21,7 +20,6 @@ import sys
 from collections import OrderedDict
 
 from toprevert import to_prevert
-
 
 months_endings = {
 	"dna": 	"01",
